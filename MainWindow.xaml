@@ -14,12 +14,14 @@
         <local:InvertDoubleConverter x:Key="InvertDoubleConverter"/>
     </Window.Resources>
 
+    <StackPanel>
     <Border Background="#B3000000" CornerRadius="12" BorderBrush="#33FFFFFF" BorderThickness="1" Margin="5">
         <Border.ContextMenu>
             <ContextMenu>
                 <MenuItem Header="Settings">
                     <MenuItem Header="Show Scrolling Text" IsCheckable="True" IsChecked="{Binding IsScrollingTextVisible}"/>
                     <MenuItem Header="Show Peak Indicators" IsCheckable="True" IsChecked="{Binding IsPeakHoldEnabled}"/>
+                    <MenuItem Header="Show Album Art" IsCheckable="True" IsChecked="{Binding IsAlbumArtVisible}"/>
                     <Separator/>
                     <MenuItem Header="Text Style">
                         <MenuItem Header="Modern" IsCheckable="True" IsChecked="{Binding IsModernStyle}"/>
@@ -61,13 +63,54 @@
         <!-- Reduced Bottom Margin -->
         <Grid Margin="10,10,10,5">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Media Controls Row -->
                 <RowDefinition Height="Auto"/> <!-- Eddie Row -->
                 <RowDefinition Height="*"/>    <!-- Main Visualizer Row -->
                 <RowDefinition Height="Auto"/> <!-- Text Row -->
             </Grid.RowDefinitions>
 
+            <!-- Media Controls (Minimal) -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,2">
+                <StackPanel.Resources>
+                    <Style x:Key="GhostBtn" TargetType="Button">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="#55FFFFFF"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="FontFamily" Value="Segoe UI Symbol"/>
+                        <Setter Property="Padding" Value="4,1"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#CCFFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Foreground" Value="Cyan"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                    <Style x:Key="VolBtn" TargetType="Button" BasedOn="{StaticResource GhostBtn}">
+                        <Setter Property="FontSize" Value="9"/>
+                        <Setter Property="Foreground" Value="#44FFFFFF"/>
+                        <Setter Property="Padding" Value="2,1"/>
+                    </Style>
+                </StackPanel.Resources>
+
+                <!-- Transport -->
+                <Button Style="{StaticResource GhostBtn}" Command="{Binding PreviousTrackCommand}" Content="⏮" FontSize="14"/>
+                <Button Style="{StaticResource GhostBtn}" Command="{Binding PlayPauseCommand}" Content="⏯" FontSize="16"/>
+                <Button Style="{StaticResource GhostBtn}" Command="{Binding NextTrackCommand}" Content="⏭" FontSize="14"/>
+            </StackPanel>
+
             <!-- EDDIE IMAGE (Above Box) -->
-            <Grid Grid.Row="0" Margin="0,0,0,10" Visibility="{Binding IsEddieMode, Converter={StaticResource BoolToVis}}">
+            <Grid Grid.Row="1" Margin="0,0,0,10" Visibility="{Binding IsEddieMode, Converter={StaticResource BoolToVis}}">
                  <!-- Background Glow (Treble-reactive) -->
                  <Ellipse Width="350" Height="350" 
                           HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -111,7 +154,7 @@
             </Grid>
 
             <!-- MAIN VISUALIZER BOX -->
-            <ContentControl Grid.Row="1" VerticalAlignment="Bottom" Height="120" Margin="10,0,10,5">
+            <ContentControl Grid.Row="2" VerticalAlignment="Bottom" Height="120" Margin="10,0,10,5">
                 <ContentControl.Resources>
                     <!-- BARS TEMPLATE (Default) -->
                     <DataTemplate x:Key="BarsTemplate">
@@ -178,7 +221,7 @@
 
             <!-- Now Playing Marquee -->
             <!-- Reduced grid height, closer to bottom -->
-            <Grid Grid.Row="2" ClipToBounds="True" Height="20" VerticalAlignment="Bottom" Margin="0,0,0,0" Visibility="{Binding IsScrollingTextVisible, Converter={StaticResource BoolToVis}}">
+            <Grid Grid.Row="3" ClipToBounds="True" Height="20" VerticalAlignment="Bottom" Margin="0,0,0,0" Visibility="{Binding IsScrollingTextVisible, Converter={StaticResource BoolToVis}}">
                 <Canvas>
                     <!-- Modern Font Style: Segoe UI, SemiBold, Uppercase, Spaced -->
                     <TextBlock x:Name="ScrollingText" 
@@ -205,4 +248,13 @@
             </Grid>
         </Grid>
     </Border>
+
+    <!-- Album Art Box (Separate box below main) -->
+    <Border Background="#B3000000" CornerRadius="12" BorderBrush="#33FFFFFF" BorderThickness="1" Margin="5,0,5,5"
+            Visibility="{Binding IsAlbumArtVisible, Converter={StaticResource BoolToVis}}">
+        <Image Source="{Binding AlbumArtSource}" Stretch="Uniform" Margin="0"
+               RenderOptions.BitmapScalingMode="HighQuality"/>
+    </Border>
+    </StackPanel>
+
 </Window>

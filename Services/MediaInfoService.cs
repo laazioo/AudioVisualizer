@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Windows.Media.Control;
+using Windows.Storage.Streams;
 
 namespace AudioVisualizer.Services
 {
@@ -47,10 +49,53 @@ namespace AudioVisualizer.Services
                 var props = await session.TryGetMediaPropertiesAsync();
                 if (props != null)
                 {
-                    TrackChanged?.Invoke(this, new MediaInfoEventArgs(props.Title, props.Artist));
+                    byte[]? thumbData = null;
+                    if (props.Thumbnail != null)
+                    {
+                        try
+                        {
+                            using var stream = await props.Thumbnail.OpenReadAsync();
+                            using var netStream = stream.AsStreamForRead();
+                            using var ms = new MemoryStream();
+                            await netStream.CopyToAsync(ms);
+                            thumbData = ms.ToArray();
+                        }
+                        catch { }
+                    }
+                    TrackChanged?.Invoke(this, new MediaInfoEventArgs(props.Title, props.Artist, thumbData));
                 }
             }
             catch { /* Ignore errors fetching properties */ }
+        }
+
+        public async Task PlayPauseAsync()
+        {
+            var session = _manager?.GetCurrentSession();
+            if (session != null)
+            {
+                try { await session.TryTogglePlayPauseAsync(); }
+                catch { }
+            }
+        }
+
+        public async Task SkipNextAsync()
+        {
+            var session = _manager?.GetCurrentSession();
+            if (session != null)
+            {
+                try { await session.TrySkipNextAsync(); }
+                catch { }
+            }
+        }
+
+        public async Task SkipPreviousAsync()
+        {
+            var session = _manager?.GetCurrentSession();
+            if (session != null)
+            {
+                try { await session.TrySkipPreviousAsync(); }
+                catch { }
+            }
         }
     }
 
@@ -58,11 +103,13 @@ namespace AudioVisualizer.Services
     {
         public string Title { get; }
         public string Artist { get; }
+        public byte[]? ThumbnailData { get; }
 
-        public MediaInfoEventArgs(string title, string artist)
+        public MediaInfoEventArgs(string title, string artist, byte[]? thumbnailData = null)
         {
             Title = title;
             Artist = artist;
+            ThumbnailData = thumbnailData;
         }
     }
 }

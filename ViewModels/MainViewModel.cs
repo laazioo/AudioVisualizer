@@ -1,5 +1,7 @@
 using AudioVisualizer.Services;
+using AudioVisualizer.Helpers;
 using System;
+using System.IO;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
@@ -451,12 +453,58 @@ namespace AudioVisualizer.ViewModels
             set { _eddieBgGlowRadius = value; OnPropertyChanged(); }
         }
 
+        // Album Art
+        private bool _isAlbumArtVisible = false;
+        public bool IsAlbumArtVisible
+        {
+            get => _isAlbumArtVisible;
+            set { _isAlbumArtVisible = value; OnPropertyChanged(); }
+        }
+
+        private System.Windows.Media.Imaging.BitmapImage? _albumArtSource;
+        public System.Windows.Media.Imaging.BitmapImage? AlbumArtSource
+        {
+            get => _albumArtSource;
+            set { _albumArtSource = value; OnPropertyChanged(); }
+        }
+
         public System.Collections.ObjectModel.ObservableCollection<BarData> SpectrumData { get; } 
             = new System.Collections.ObjectModel.ObservableCollection<BarData>();
 
         // New Lock for thread safety of bar data buffer
         private readonly object _lock = new object();
         private double[] _latestTargetBars = new double[BarCount];
+
+        // Media Control Commands
+        public System.Windows.Input.ICommand PlayPauseCommand { get; }
+        public System.Windows.Input.ICommand NextTrackCommand { get; }
+        public System.Windows.Input.ICommand PreviousTrackCommand { get; }
+        public System.Windows.Input.ICommand VolumeUpCommand { get; }
+        public System.Windows.Input.ICommand VolumeDownCommand { get; }
+
+        // System Volume
+        private NAudio.CoreAudioApi.MMDevice? _volumeDevice;
+        public double SystemVolume
+        {
+            get
+            {
+                try { return _volumeDevice?.AudioEndpointVolume?.MasterVolumeLevelScalar ?? 0.5; }
+                catch { return 0.5; }
+            }
+            set
+            {
+                try
+                {
+                    if (_volumeDevice?.AudioEndpointVolume != null)
+                    {
+                        float v = (float)Math.Clamp(value, 0.0, 1.0);
+                        _volumeDevice.AudioEndpointVolume.MasterVolumeLevelScalar = v;
+                        OnPropertyChanged();
+                    }
+                }
+                catch { }
+            }
+        }
 
         // Constructor
         public MainViewModel()
@@ -469,6 +517,21 @@ namespace AudioVisualizer.ViewModels
             
             _mediaService = new MediaInfoService();
             _mediaService.TrackChanged += OnTrackChanged;
+
+            // Set up media control commands (after _mediaService is created)
+            PlayPauseCommand = new RelayCommand(() => _ = _mediaService.PlayPauseAsync());
+            NextTrackCommand = new RelayCommand(() => _ = _mediaService.SkipNextAsync());
+            PreviousTrackCommand = new RelayCommand(() => _ = _mediaService.SkipPreviousAsync());
+
+            // Set up volume control
+            try
+            {
+                var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                _volumeDevice = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
+            }
+            catch { }
+            VolumeUpCommand = new RelayCommand(() => { SystemVolume = Math.Min(1.0, SystemVolume + 0.05); });
+            VolumeDownCommand = new RelayCommand(() => { SystemVolume = Math.Max(0.0, SystemVolume - 0.05); });
 
             // Initialize Spectrum Data
             for (int i = 0; i < BarCount; i++)
@@ -496,6 +559,29 @@ namespace AudioVisualizer.ViewModels
         {
             var text = string.IsNullOrEmpty(e.Artist) ? e.Title : $"{e.Artist} - {e.Title}";
             CurrentTrackName = string.IsNullOrEmpty(text) ? "No media playing" : text;
+
+            // Update album art on UI thread
+            if (e.ThumbnailData != null && e.ThumbnailData.Length > 0)
+            {
+                System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    try
+                    {
+                        var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                        bmp.BeginInit();
+                        bmp.StreamSource = new MemoryStream(e.ThumbnailData);
+                        bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                        bmp.EndInit();
+                        bmp.Freeze();
+                        AlbumArtSource = bmp;
+                    }
+                    catch { AlbumArtSource = null; }
+                });
+            }
+            else
+            {
+                AlbumArtSource = null;
+            }
         }
 
         private void OnAudioDataAvailable(object? sender, NAudio.Wave.WaveInEventArgs e)
