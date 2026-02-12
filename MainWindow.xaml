@@ -7,7 +7,8 @@
         mc:Ignorable="d"
         Title="AudioVisualizer" Width="400" SizeToContent="Height"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        Topmost="True" ResizeMode="NoResize">
+        Topmost="True" ResizeMode="NoResize"
+        UseLayoutRounding="True" SnapsToDevicePixels="True">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -249,11 +250,14 @@
         </Grid>
     </Border>
 
-    <!-- Album Art Box (Separate box below main) -->
     <Border Background="#B3000000" CornerRadius="12" BorderBrush="#33FFFFFF" BorderThickness="1" Margin="5,0,5,5"
             Visibility="{Binding IsAlbumArtVisible, Converter={StaticResource BoolToVis}}">
         <Image Source="{Binding AlbumArtSource}" Stretch="Uniform" Margin="0"
-               RenderOptions.BitmapScalingMode="HighQuality"/>
+               RenderOptions.BitmapScalingMode="Fant">
+            <Image.CacheMode>
+                <BitmapCache RenderAtScale="2" SnapsToDevicePixels="True"/>
+            </Image.CacheMode>
+        </Image>
     </Border>
     </StackPanel>
 

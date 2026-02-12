@@ -278,7 +278,7 @@ namespace AudioVisualizer.ViewModels
             Eddie
         }
 
-        private VisualizerMode _selectedVisualizerMode = VisualizerMode.Bars;
+        private VisualizerMode _selectedVisualizerMode = VisualizerMode.Eddie;
         public VisualizerMode SelectedVisualizerMode
         {
             get => _selectedVisualizerMode;
@@ -454,7 +454,7 @@ namespace AudioVisualizer.ViewModels
         }
 
         // Album Art
-        private bool _isAlbumArtVisible = false;
+        private bool _isAlbumArtVisible = true;
         public bool IsAlbumArtVisible
         {
             get => _isAlbumArtVisible;
