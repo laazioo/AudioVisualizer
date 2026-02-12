@@ -129,7 +129,7 @@
                  </Ellipse>
 
                  <!-- Main Mascot Image -->
-                 <Image Source="Assets/eddie.png" Height="300" Stretch="Uniform"/>
+                 <Image Source="pack://application:,,,/Assets/eddie.png" Height="300" Stretch="Uniform"/>
                  
                  <!-- Left Eye Glow -->
                  <Ellipse Width="30" Height="30" Fill="Red" Opacity="{Binding EddieEyeIntensity}" 
