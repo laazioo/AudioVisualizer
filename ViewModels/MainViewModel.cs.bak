@@ -436,21 +436,6 @@ namespace AudioVisualizer.ViewModels
             set { _eddieEyeGap = value; OnPropertyChanged(); }
         }
 
-        // Background Glow (Treble)
-        private double _eddieBgGlowIntensity = 0.0;
-        public double EddieBgGlowIntensity
-        {
-            get => _eddieBgGlowIntensity;
-            set { _eddieBgGlowIntensity = value; OnPropertyChanged(); }
-        }
-
-        private double _eddieBgGlowRadius = 40.0;
-        public double EddieBgGlowRadius
-        {
-            get => _eddieBgGlowRadius;
-            set { _eddieBgGlowRadius = value; OnPropertyChanged(); }
-        }
-
         public System.Collections.ObjectModel.ObservableCollection<BarData> SpectrumData { get; } 
             = new System.Collections.ObjectModel.ObservableCollection<BarData>();
 
@@ -719,12 +704,6 @@ namespace AudioVisualizer.ViewModels
             for(int i=0; i<8; i++) bassSum += _currentBars[i];
             BassAmplitude = bassSum / 8.0;
 
-            // Treble Logic (Top 20 bars = high frequencies)
-            double trebleSum = 0;
-            int trebleCount = 20;
-            for(int i = BarCount - trebleCount; i < BarCount; i++) trebleSum += _currentBars[i];
-            double trebleAmplitude = trebleSum / trebleCount;
-
             // Update Line Thickness (Oscilloscope)
             if (IsOscilloscopeMode)
             {
@@ -734,19 +713,10 @@ namespace AudioVisualizer.ViewModels
             // Update Eddie Mode
             if (IsEddieMode)
             {
-                // Eyes glow with bass (low frequencies)
                 double targetIntensity = (BassAmplitude * 4.0); 
                 if (targetIntensity < 0.1) targetIntensity = 0.1; 
                 if (targetIntensity > 1.0) targetIntensity = 1.0;
                 EddieEyeIntensity = targetIntensity;
-
-                // Background glow with treble (high frequencies)
-                double bgTarget = trebleAmplitude * 5.0;
-                if (bgTarget > 1.0) bgTarget = 1.0;
-                // Smooth transition
-                EddieBgGlowIntensity = EddieBgGlowIntensity + (bgTarget - EddieBgGlowIntensity) * 0.3;
-                // Pulse the blur radius with treble too (40 to 120)
-                EddieBgGlowRadius = 40.0 + (EddieBgGlowIntensity * 80.0);
             }
         }
 

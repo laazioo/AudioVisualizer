@@ -5,12 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AudioVisualizer"
         mc:Ignorable="d"
-        Title="AudioVisualizer" Height="150" Width="400"
+        Title="AudioVisualizer" Width="400" SizeToContent="Height"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ResizeMode="NoResize">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <local:InvertDoubleConverter x:Key="InvertDoubleConverter"/>
     </Window.Resources>
 
     <Border Background="#B3000000" CornerRadius="12" BorderBrush="#33FFFFFF" BorderThickness="1" Margin="5">
@@ -33,7 +34,12 @@
                         <MenuItem Header="Magenta" IsCheckable="True" IsChecked="{Binding IsMagentaColor}"/>
                         <MenuItem Header="Cyan" IsCheckable="True" IsChecked="{Binding IsCyanColor}"/>
                     </MenuItem>
-                    <MenuItem Header="Visualizer Style">
+                    <MenuItem Header="Visualizer Shape">
+                        <MenuItem Header="Bars (Default)" IsCheckable="True" IsChecked="{Binding IsBarsMode}"/>
+                        <MenuItem Header="Oscilloscope (Line)" IsCheckable="True" IsChecked="{Binding IsOscilloscopeMode}"/>
+                        <MenuItem Header="Eddie (Heavy Metal)" IsCheckable="True" IsChecked="{Binding IsEddieMode}"/>
+                    </MenuItem>
+                    <MenuItem Header="Visualizer Color Theme">
                         <MenuItem Header="Gradient (Default)" IsCheckable="True" IsChecked="{Binding IsGradientStyle}"/>
                         <MenuItem Header="Classic (Winamp)" IsCheckable="True" IsChecked="{Binding IsClassicStyle}"/>
                     </MenuItem>
@@ -55,46 +61,124 @@
         <!-- Reduced Bottom Margin -->
         <Grid Margin="10,10,10,5">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/> <!-- Eddie Row -->
+                <RowDefinition Height="*"/>    <!-- Main Visualizer Row -->
+                <RowDefinition Height="Auto"/> <!-- Text Row -->
             </Grid.RowDefinitions>
 
-            <!-- Spectrum Visualizer -->
-            <ItemsControl ItemsSource="{Binding SpectrumData}" Grid.Row="0" VerticalAlignment="Bottom" Height="120" Margin="10,0,10,5">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Rows="1"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Grid VerticalAlignment="Bottom" Height="120" Margin="1,0">
-                            <!-- The Bar -->
-                            <Rectangle VerticalAlignment="Bottom" RadiusX="1" RadiusY="1">
-                                <Rectangle.Fill>
-                                    <Binding Path="DataContext.BarBrush" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                                </Rectangle.Fill>
-                                <Rectangle.LayoutTransform>
-                                    <ScaleTransform ScaleY="{Binding Value}"/>
-                                </Rectangle.LayoutTransform>
-                                <Rectangle.Height>120</Rectangle.Height>
-                            </Rectangle>
+            <!-- EDDIE IMAGE (Above Box) -->
+            <Grid Grid.Row="0" Margin="0,0,0,10" Visibility="{Binding IsEddieMode, Converter={StaticResource BoolToVis}}">
+                 <!-- Background Glow (Treble-reactive) -->
+                 <Ellipse Width="350" Height="350" 
+                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                          Opacity="{Binding EddieBgGlowIntensity}">
+                     <Ellipse.Fill>
+                         <RadialGradientBrush>
+                             <GradientStop Color="#FF6600FF" Offset="0.0"/>
+                             <GradientStop Color="#FF3300AA" Offset="0.4"/>
+                             <GradientStop Color="Transparent" Offset="1.0"/>
+                         </RadialGradientBrush>
+                     </Ellipse.Fill>
+                     <Ellipse.Effect>
+                         <BlurEffect Radius="{Binding EddieBgGlowRadius}"/>
+                     </Ellipse.Effect>
+                 </Ellipse>
 
-                            <!-- The Peak Indicator -->
-                            <Rectangle Height="2" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Fill="White" Opacity="0.8"
-                                       Visibility="{Binding DataContext.IsPeakHoldEnabled, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
-                                <Rectangle.RenderTransform>
-                                    <TranslateTransform Y="{Binding PeakY}"/>
-                                </Rectangle.RenderTransform>
-                            </Rectangle>
+                 <!-- Main Mascot Image -->
+                 <Image Source="Assets/eddie.png" Height="300" Stretch="Uniform"/>
+                 
+                 <!-- Left Eye Glow -->
+                 <Ellipse Width="30" Height="30" Fill="Red" Opacity="{Binding EddieEyeIntensity}" 
+                          HorizontalAlignment="Center" VerticalAlignment="Center">
+                     <Ellipse.Effect>
+                         <BlurEffect Radius="20"/>
+                     </Ellipse.Effect>
+                     <Ellipse.RenderTransform>
+                         <TranslateTransform X="{Binding EddieEyeGap, Converter={StaticResource InvertDoubleConverter}}" Y="{Binding EddieEyeHeight}"/>
+                     </Ellipse.RenderTransform>
+                 </Ellipse>
+
+                 <!-- Right Eye Glow -->
+                 <Ellipse Width="30" Height="30" Fill="Red" Opacity="{Binding EddieEyeIntensity}" 
+                          HorizontalAlignment="Center" VerticalAlignment="Center">
+                     <Ellipse.Effect>
+                         <BlurEffect Radius="20"/>
+                     </Ellipse.Effect>
+                     <Ellipse.RenderTransform>
+                         <TranslateTransform X="{Binding EddieEyeGap}" Y="{Binding EddieEyeHeight}"/>
+                     </Ellipse.RenderTransform>
+                 </Ellipse>
+            </Grid>
+
+            <!-- MAIN VISUALIZER BOX -->
+            <ContentControl Grid.Row="1" VerticalAlignment="Bottom" Height="120" Margin="10,0,10,5">
+                <ContentControl.Resources>
+                    <!-- BARS TEMPLATE (Default) -->
+                    <DataTemplate x:Key="BarsTemplate">
+                        <ItemsControl ItemsSource="{Binding SpectrumData}" Height="120" VerticalAlignment="Bottom">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid VerticalAlignment="Bottom" Height="120" Margin="1,0">
+                                        <Rectangle VerticalAlignment="Bottom" RadiusX="1" RadiusY="1">
+                                            <Rectangle.Fill>
+                                                <Binding Path="DataContext.BarBrush" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                            </Rectangle.Fill>
+                                            <Rectangle.LayoutTransform>
+                                                <ScaleTransform ScaleY="{Binding Value}"/>
+                                            </Rectangle.LayoutTransform>
+                                            <Rectangle.Height>120</Rectangle.Height>
+                                        </Rectangle>
+                                        <Rectangle Height="2" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Fill="White" Opacity="0.8"
+                                                   Visibility="{Binding DataContext.IsPeakHoldEnabled, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
+                                            <Rectangle.RenderTransform>
+                                                <TranslateTransform Y="{Binding PeakY}"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DataTemplate>
+
+                    <!-- OSCILLOSCOPE TEMPLATE -->
+                    <DataTemplate x:Key="OscilloscopeTemplate">
+                        <Grid>
+                             <Polyline Points="{Binding WaveformPoints}"
+                                      Stroke="{Binding BarBrush}"
+                                      StrokeThickness="{Binding LineThickness}"
+                                      StrokeLineJoin="Round"
+                                      VerticalAlignment="Top">
+                                 <Polyline.Effect>
+                                     <DropShadowEffect Color="{Binding BarBrush.GradientStops[1].Color, FallbackValue=Cyan}" BlurRadius="10" ShadowDepth="0" Opacity="0.8"/>
+                                 </Polyline.Effect>
+                             </Polyline>
                         </Grid>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                </ContentControl.Resources>
+
+                <!-- Style to Switch Templates -->
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Content" Value="{Binding}"/>
+                        <Setter Property="ContentTemplate" Value="{StaticResource BarsTemplate}"/> <!-- Default -->
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsOscilloscopeMode}" Value="True">
+                                <Setter Property="ContentTemplate" Value="{StaticResource OscilloscopeTemplate}"/>
+                            </DataTrigger>
+                            <!-- Eddie Mode handled outside ContentControl -->
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
 
             <!-- Now Playing Marquee -->
             <!-- Reduced grid height, closer to bottom -->
-            <Grid Grid.Row="1" ClipToBounds="True" Height="20" VerticalAlignment="Bottom" Margin="0,0,0,0" Visibility="{Binding IsScrollingTextVisible, Converter={StaticResource BoolToVis}}">
+            <Grid Grid.Row="2" ClipToBounds="True" Height="20" VerticalAlignment="Bottom" Margin="0,0,0,0" Visibility="{Binding IsScrollingTextVisible, Converter={StaticResource BoolToVis}}">
                 <Canvas>
                     <!-- Modern Font Style: Segoe UI, SemiBold, Uppercase, Spaced -->
                     <TextBlock x:Name="ScrollingText" 
